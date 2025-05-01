@@ -21,9 +21,13 @@ app.config.from_envvar('FLASKR_SETTINGS', silent=True)
 
 def init_db():
     db = get_db()
-    with app.open_resource('schema.sql', mode='r') as f:
-        db.cursor().executescript(f.read())
-    db.commit()
+    try:
+        with app.open_resource('schema.sql', mode='r') as f:
+            db.cursor().executescript(f.read())
+        db.commit()
+    except sqlite3.Error as e:
+        print(f"An error occurred: {e.args[0]}")
+        db.rollback()
 
 
 @app.cli.command('init_db')
@@ -59,7 +63,7 @@ def close_db(error):
 @app.route('/')
 def show_entries():
     db = get_db()
-    cur = db.execute('SELECT title, text FROM entries ORDER BY id DESC')
+    cur = db.execute('SELECT id, title, text FROM entries ORDER BY id DESC')
     entries = cur.fetchall()
     return render_template('show_entries.html', entries=entries)
 
@@ -95,4 +99,15 @@ def login():
 def logout():
     session.pop('logged_in', None)
     flash('You were logged out')
+    return redirect(url_for('show_entries'))
+
+
+@app.route('/delete/<int:entry_id>', methods=['POST'])
+def delete_entry(entry_id):
+    if not session.get('logged_in'):
+        abort(401)
+    db = get_db()
+    db.execute('DELETE FROM entries WHERE id = ?', [entry_id])
+    db.commit()
+    flash('Entry was successfully deleted')
     return redirect(url_for('show_entries'))
