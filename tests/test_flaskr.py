@@ -161,4 +161,51 @@ class AuthActions(object):
         return self._client.get('/logout', follow_redirects=True)
 
 
+class TestDeleteEntry:
+    
+    def test_delete_entry_requires_login(self):
+        """
+        Test that delete_entry requires user to be logged in.
+        """
+        with app.test_client() as client:
+            # Try to delete an entry without being logged in
+            response = client.post('/delete/1', follow_redirects=False)
+            assert response.status_code == 401  # Unauthorized
+    
+    def test_delete_entry_success(self):
+        """
+        Test that an entry can be successfully deleted when logged in.
+        """
+        with app.test_client() as client:
+            # First, log in
+            auth = AuthActions(client)
+            auth.login()
+            
+            # Initialize the database
+            with app.app_context():
+                init_db()
+                db = get_db()
+                
+                # Add a test entry
+                db.execute('INSERT INTO entries (title, text) VALUES (?, ?)',
+                          ['Test Title', 'Test Content'])
+                db.commit()
+                
+                # Get the ID of the inserted entry
+                entry_id = db.execute('SELECT id FROM entries WHERE title = ?', 
+                                     ['Test Title']).fetchone()['id']
+            
+            # Delete the entry
+            response = client.post(f'/delete/{entry_id}', follow_redirects=True)
+            
+            # Check if deletion was successful
+            assert response.status_code == 200
+            assert b'Entry was successfully deleted' in response.data
+            
+            # Verify the entry is no longer in the database
+            with app.app_context():
+                db = get_db()
+                entry = db.execute('SELECT * FROM entries WHERE id = ?', 
+                                  [entry_id]).fetchone()
+                assert entry is None
 
