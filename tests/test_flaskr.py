@@ -2,7 +2,8 @@ import pytest
 import os
 import sqlite3
 import tempfile
-from flask import g
+import unittest.mock
+from flask import g, session
 from flaskr import app, init_db, get_db
 
 
@@ -57,6 +58,30 @@ class TestFlaskr:
             columns = [row[1] for row in cursor.fetchall()]
             expected_columns = ['id', 'title', 'text']
             assert set(columns) == set(expected_columns)
+            
+    def test_init_db_error_handling(self):
+        """
+        Test that init_db() properly handles SQLite errors.
+        
+        This test mocks the open_resource method to return invalid SQL
+        and verifies that the error handling code is executed.
+        """
+        with app.app_context():
+            # Mock app.open_resource to return invalid SQL that will cause an error
+            with unittest.mock.patch.object(app, 'open_resource') as mock_open_resource:
+                # Create a mock file-like object that returns invalid SQL
+                mock_file = unittest.mock.MagicMock()
+                mock_file.read.return_value = "INVALID SQL STATEMENT;"
+                mock_open_resource.return_value.__enter__.return_value = mock_file
+                
+                # Mock print function to capture output
+                with unittest.mock.patch('builtins.print') as mock_print:
+                    # Call init_db which should trigger the error handling
+                    init_db()
+                    
+                    # Verify that print was called with an error message
+                    mock_print.assert_called_once()
+                    assert "An error occurred:" in mock_print.call_args[0][0]
 
     def test_initdb_command(self):
         """
@@ -93,6 +118,34 @@ class TestFlaskr:
             assert b'Invalid username' in response.data
             assert response.status_code == 200
             assert b'You were logged in' not in response.data
+            
+    def test_invalid_password(self):
+        """
+        Test login functionality when an invalid password is provided.
+
+        This test case covers the following path:
+        - request.method == 'POST'
+        - request.form['username'] == app.config['USERNAME']
+        - request.form['password'] != app.config['PASSWORD']
+
+        Expected outcome:
+        - The login attempt should fail
+        - An error message 'Invalid password' should be returned
+        - The user should not be redirected
+        """
+        with app.test_client() as client:
+            response = client.post('/login', data={
+                'username': app.config['USERNAME'],
+                'password': 'wrong_password'
+            }, follow_redirects=True)
+
+            assert b'Invalid password' in response.data
+            assert response.status_code == 200
+            assert b'You were logged in' not in response.data
+            
+            # Verify session state - user should not be logged in
+            with client.session_transaction() as sess:
+                assert 'logged_in' not in sess
 
     def test_login_get(self):
         """
@@ -123,6 +176,37 @@ class TestFlaskr:
             assert response.status_code == 200
             assert b'You were logged in' in response.data
             assert b'log out' in response.data
+            
+    def test_logout(self):
+        """
+        Test logout functionality.
+        
+        This test verifies that:
+        1. The session's 'logged_in' attribute is removed
+        2. A flash message is displayed
+        3. The user is redirected to the show_entries page
+        """
+        with app.test_client() as client:
+            # First login
+            client.post('/login', data={
+                'username': app.config['USERNAME'],
+                'password': app.config['PASSWORD']
+            })
+            
+            # Check that we're logged in
+            with client.session_transaction() as sess:
+                assert sess['logged_in'] is True
+            
+            # Then logout
+            response = client.get('/logout', follow_redirects=True)
+            
+            # Check that we're logged out
+            assert response.status_code == 200
+            assert b'You were logged out' in response.data
+            
+            # Verify session state
+            with client.session_transaction() as sess:
+                assert 'logged_in' not in sess
 
     def test_show_entries(self):
         """
@@ -208,4 +292,33 @@ class TestDeleteEntry:
                 entry = db.execute('SELECT * FROM entries WHERE id = ?', 
                                   [entry_id]).fetchone()
                 assert entry is None
+                
+    def test_delete_nonexistent_entry(self):
+        """
+        Test deleting a non-existent entry.
+        
+        This test verifies that attempting to delete an entry that doesn't exist
+        doesn't cause errors and still returns a successful response.
+        """
+        with app.test_client() as client:
+            # First, log in
+            auth = AuthActions(client)
+            auth.login()
+            
+            # Use a very large ID that's unlikely to exist
+            nonexistent_id = 9999
+            
+            # Verify the entry doesn't exist
+            with app.app_context():
+                db = get_db()
+                entry = db.execute('SELECT * FROM entries WHERE id = ?', 
+                                  [nonexistent_id]).fetchone()
+                assert entry is None
+            
+            # Try to delete the non-existent entry
+            response = client.post(f'/delete/{nonexistent_id}', follow_redirects=True)
+            
+            # Check that the operation was still successful
+            assert response.status_code == 200
+            assert b'Entry was successfully deleted' in response.data
 
