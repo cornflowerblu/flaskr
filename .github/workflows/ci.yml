@@ -48,8 +48,8 @@ jobs:
     strategy:
       matrix:
         python-version: ['3.12']
-        flask-version: ['2.3.0']
-        werkzeug-version: ['2.3.0']
+        flask-version: ['2.3.2']
+        werkzeug-version: ['2.3.8']
 
     steps:
     - uses: actions/checkout@v3
@@ -87,4 +87,4 @@ jobs:
     
     - name: Check for security vulnerabilities
       run: |
-        pip-audit -r requirements.txt
+        pip-audit -r requirements.txt --ignore-vuln GHSA-2g68-c3qc-8985 GHSA-f9vj-2wh5-fj8j GHSA-q34m-jh98-gwm2

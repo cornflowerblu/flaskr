@@ -12,8 +12,8 @@ Flaskr showcases user authentication, database interactions, and templating, mak
 
 | Package | Required Version |
 |---------|-----------------|
-| Flask   | 2.3.0           |
-| Werkzeug| 2.3.0           |
+| Flask   | 2.3.2           |
+| Werkzeug| 2.3.8           |
 | Python  | 3.12.3+         |
 | pytest  | 8.3.5+          |
 
