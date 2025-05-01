@@ -87,4 +87,4 @@ jobs:
     
     - name: Check for security vulnerabilities
       run: |
-        pip-audit -r requirements.txt --ignore-vuln GHSA-2g68-c3qc-8985 GHSA-f9vj-2wh5-fj8j GHSA-q34m-jh98-gwm2
+        pip-audit --requirement requirements.txt --ignore-vuln GHSA-2g68-c3qc-8985 --ignore-vuln GHSA-f9vj-2wh5-fj8j --ignore-vuln GHSA-q34m-jh98-gwm2

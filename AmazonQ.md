@@ -49,7 +49,7 @@ If you want to fail the build only on high severity vulnerabilities, you can use
 - name: Security scan dependencies
   run: |
     pip install pip-audit
-    pip-audit -r requirements.txt --ignore-vuln PYSEC-2023-62 PYSEC-2023-221
+    pip-audit --requirement requirements.txt --ignore-vuln GHSA-2g68-c3qc-8985 --ignore-vuln GHSA-f9vj-2wh5-fj8j --ignore-vuln GHSA-q34m-jh98-gwm2
 ```
 
 ### Current Vulnerabilities
