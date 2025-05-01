@@ -136,16 +136,30 @@ The test suite includes:
 - Integration tests for database operations
 - Authentication flow tests
 - Error handling tests
+- Version compatibility tests
 
 #### Test Structure
 
 ```
 tests/
-├── test_db_error.py     # Database error handling tests
-├── test_flaskr.py       # Core functionality tests
-├── test_login_full.py   # Complete login flow tests
-└── test_login_paths.py  # Login path validation tests
+├── test_db_error.py            # Database error handling tests
+├── test_flaskr.py              # Core functionality tests
+├── test_login_full.py          # Complete login flow tests
+├── test_login_paths.py         # Login path validation tests
+└── test_version_compatibility.py # Version compatibility tests
 ```
+
+### Continuous Integration
+
+This project uses GitHub Actions for continuous integration to ensure compatibility is maintained in future updates. The CI pipeline automatically runs on push and pull request events.
+
+The CI pipeline includes:
+- Running the test suite
+- Checking version compatibility
+- Scanning for security vulnerabilities
+- Generating test coverage reports
+
+For more information about the CI pipeline, see [CI_PIPELINE.md](CI_PIPELINE.md).
 
 ### Troubleshooting
 
