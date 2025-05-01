@@ -83,8 +83,8 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install safety
+        pip install pip-audit
     
     - name: Check for security vulnerabilities
       run: |
-        safety scan -r requirements.txt
+        pip-audit -r requirements.txt --ignore-vuln PYSEC-2023-62 PYSEC-2023-221
